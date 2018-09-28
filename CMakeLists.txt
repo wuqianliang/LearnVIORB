@@ -28,10 +28,11 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-find_package(OpenCV 2.4.3 REQUIRED)
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(OpenCV 3.3.1 REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(Pangolin REQUIRED)
-find_package(Cholmod REQUIRED)
+#find_package(Cholmod REQUIRED)
+
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -39,7 +40,8 @@ ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/src
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
-${CHOLMOD_INCLUDE_DIR}
+#${CHOLMOD_INCLUDE_DIR}
+/usr/local/include
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -92,47 +94,64 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-cholmod
-${CHOLMOD_LIBRARIES}
-${BLAS_LIBRARIES}
-${LAPACK_LIBRARIES}
+#cholmod
+#${CHOLMOD_LIBRARIES}
+/usr/local/lib/libcholmod.a
+/usr/local/lib/libamd.a
+/usr/local/lib/libsuitesparseconfig.a
+/usr/local/lib/libcamd.a
+/usr/local/lib/libcolamd.a
+/usr/local/lib/libbtf.a
+/usr/local/lib/libklu.a
+/usr/local/lib/libldl.a
+/usr/local/lib/libccolamd.a
+/usr/local/lib/libumfpack.a
+/usr/local/lib/libcxsparse.a
+/usr/local/lib/libspqr.a
+/usr/local/lib/librbio.a
+/usr/lib/libcblas.so
+/usr/lib/liblapack.so
 )
 
 ## Build examples
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
-#add_executable(rgbd_tum
-#Examples/RGB-D/rgbd_tum.cc)
-#target_link_libraries(rgbd_tum ${PROJECT_NAME})
+add_executable(rgbd_tum
+Examples/RGB-D/rgbd_tum.cc)
+target_link_libraries(rgbd_tum 
+${PROJECT_NAME})
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
-#add_executable(stereo_kitti
-#Examples/Stereo/stereo_kitti.cc)
-#target_link_libraries(stereo_kitti ${PROJECT_NAME})
+add_executable(stereo_kitti
+Examples/Stereo/stereo_kitti.cc)
+target_link_libraries(stereo_kitti ${PROJECT_NAME})
 
-#add_executable(stereo_euroc
-#Examples/Stereo/stereo_euroc.cc)
-#target_link_libraries(stereo_euroc ${PROJECT_NAME})
+add_executable(stereo_euroc
+Examples/Stereo/stereo_euroc.cc)
+target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
-#add_executable(mono_tum
-#Examples/Monocular/mono_tum.cc)
-#target_link_libraries(mono_tum ${PROJECT_NAME})
+add_executable(mono_tum
+Examples/Monocular/mono_tum.cc)
+target_link_libraries(mono_tum ${PROJECT_NAME})
 
-#add_executable(mono_kitti
-#Examples/Monocular/mono_kitti.cc)
-#target_link_libraries(mono_kitti ${PROJECT_NAME})
+add_executable(mono_kitti
+Examples/Monocular/mono_kitti.cc)
+target_link_libraries(mono_kitti ${PROJECT_NAME})
 
-#add_executable(mono_euroc
-#Examples/Monocular/mono_euroc.cc)
-#target_link_libraries(mono_euroc ${PROJECT_NAME})
+add_executable(mono_euroc
+Examples/Monocular/mono_euroc.cc)
+target_link_libraries(mono_euroc ${PROJECT_NAME})
 
 ## Build tools
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
-#add_executable(bin_vocabulary
-#tools/bin_vocabulary.cc)
-#target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
+add_executable(bin_vocabulary
+tools/bin_vocabulary.cc)
+target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+
+#add_executable(mono_c920 Examples/Monocular/myslam.cpp)
+#target_link_libraries(mono_c920 ${PROJECT_NAME})
