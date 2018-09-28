@@ -30,8 +30,8 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../../../cmake_modules)
 
-find_package(OpenCV 2.4.3 REQUIRED)
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(OpenCV 3.3.1 REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(Pangolin REQUIRED)
 
 include_directories(
@@ -60,6 +60,20 @@ src/MsgSync/MsgSynchronizer.h
 
 target_link_libraries(VIO
 ${LIBS}
+/usr/local/lib/libcholmod.a
+/usr/local/lib/libamd.a
+/usr/local/lib/libsuitesparseconfig.a
+/usr/local/lib/libcamd.a
+/usr/local/lib/libcolamd.a
+/usr/local/lib/libbtf.a
+/usr/local/lib/libklu.a
+/usr/local/lib/libldl.a
+/usr/local/lib/libccolamd.a
+/usr/local/lib/libumfpack.a
+/usr/local/lib/libcxsparse.a
+/usr/local/lib/libspqr.a
+/usr/local/lib/librbio.a
+/usr/lib/libcblas.so
+/usr/lib/liblapack.so
 )
-
 
