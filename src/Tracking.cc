@@ -461,31 +461,29 @@ IMUPreintegrator Tracking::GetIMUPreIntSinceLastFrame(Frame* pCurF, Frame* pLast
 }
 
 
-cv::Mat Tracking::GrabImageMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu, const double &timestamp)
-{
-    mvIMUSinceLastKF.insert(mvIMUSinceLastKF.end(), vimu.begin(),vimu.end());
+cv::Mat Tracking::GrabImageMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu, const double &timestamp) {
+    mvIMUSinceLastKF.insert(mvIMUSinceLastKF.end(), vimu.begin(), vimu.end());
     mImGray = im;
 
-    if(mImGray.channels()==3)
-    {
-        if(mbRGB)
-            cvtColor(mImGray,mImGray,CV_RGB2GRAY);
+    if (mImGray.channels() == 3) {
+        if (mbRGB)
+            cvtColor(mImGray, mImGray, CV_RGB2GRAY);
         else
-            cvtColor(mImGray,mImGray,CV_BGR2GRAY);
-    }
-    else if(mImGray.channels()==4)
-    {
-        if(mbRGB)
-            cvtColor(mImGray,mImGray,CV_RGBA2GRAY);
+            cvtColor(mImGray, mImGray, CV_BGR2GRAY);
+    } else if (mImGray.channels() == 4) {
+        if (mbRGB)
+            cvtColor(mImGray, mImGray, CV_RGBA2GRAY);
         else
-            cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
+            cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
     }
 
-    if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
-        mCurrentFrame = Frame(mImGray,timestamp,vimu,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-    else
-        mCurrentFrame = Frame(mImGray,timestamp,vimu,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpLastKeyFrame);
-
+    if (mState == NOT_INITIALIZED || mState == NO_IMAGES_YET) {
+        mCurrentFrame = Frame(mImGray, timestamp, vimu, mpIniORBextractor, mpORBVocabulary, mK, mDistCoef, mbf,
+                              mThDepth);
+    } else {
+        mCurrentFrame = Frame(mImGray, timestamp, vimu, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth,
+                          mpLastKeyFrame);
+    }
     Track();
 
     return mCurrentFrame.mTcw.clone();
@@ -749,7 +747,8 @@ void Tracking::Track()
     {
         bMapUpdated = true;
     }
-
+    // System is initialized. Track Frame.
+    bool bOK;
 
     if(mState==NOT_INITIALIZED)
     {
@@ -765,10 +764,10 @@ void Tracking::Track()
     }
     else
     {
-        // System is initialized. Track Frame.
-        bool bOK;
 
-        // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
+
+        // Initial camera pose estimation using motion model or relocalization (if tracking is lost)a
+        cout << "=============================== mbOnlyTracking:" << mbOnlyTracking << endl;
         if(!mbOnlyTracking)
         {
             // Local Mapping is activated. This is the normal behaviour, unless
@@ -779,19 +778,23 @@ void Tracking::Track()
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 #ifdef TRACK_WITH_IMU
+                cout << "=================================== mState:" << mState << endl;
                 // If Visual-Inertial is initialized
                 if(mpLocalMapper->GetVINSInited())
                 {
+
                     // 20 Frames after reloc, track with only vision
                     if(mbRelocBiasPrepare)
                     {
                         bOK = TrackReferenceKeyFrame();
+                        cout << "=================================== mState 11" << mState << endl;
                     }
                     else
                     {
                         bOK = TrackWithIMU(bMapUpdated);
                         if(!bOK)
                             bOK = TrackReferenceKeyFrame();
+                        cout << "=================================== mState 22" << mState << endl;
 
                     }
                 }
@@ -802,12 +805,14 @@ void Tracking::Track()
                     if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                     {
                         bOK = TrackReferenceKeyFrame();
+                        cout << "=================================== mState 33" << mState << endl;
                     }
                     else
                     {
                         bOK = TrackWithMotionModel();
                         if(!bOK)
                             bOK = TrackReferenceKeyFrame();
+                        cout << "=================================== mState 44" << mState << endl;
                     }
                 }
             }
@@ -833,18 +838,23 @@ void Tracking::Track()
 #ifndef TRACK_WITH_IMU
                 bOK = TrackLocalMap();
 #else
-                if(!mpLocalMapper->GetVINSInited())
+                if(!mpLocalMapper->GetVINSInited()) {
+
                     bOK = TrackLocalMap();
+                    cout << "=================================== mState 55" << mState << endl;
+                }
                 else
                 {
                     if(mbRelocBiasPrepare)
                     {
                         // 20 Frames after reloc, track with only vision
                         bOK = TrackLocalMap();
+                        cout << "=================================== mState 66" << mState << endl;
                     }
                     else
                     {
                         bOK = TrackLocalMapWithIMU(bMapUpdated);
+                        cout << "=================================== mState 77" << mState << endl;
                     }
                 }
 #endif
@@ -859,16 +869,21 @@ void Tracking::Track()
         if(bOK)
         {
             mState = OK;
-
+            cout << "=================================== mState cc" << mState << endl;
+            cout << "mv20FramesReloc.size() " << mv20FramesReloc.size() << endl;
             // Add Frames to re-compute IMU bias after reloc
             if(mbRelocBiasPrepare)
             {
                 mv20FramesReloc.push_back(mCurrentFrame);
 
+                cout << "mCurrentFrame " << mCurrentFrame.mnId << endl;
+
+                cout << "=================================== mState ccc" << mState << endl;
                 // Before creating new keyframe
                 // Use 20 consecutive frames to re-compute IMU bias
                 if(mCurrentFrame.mnId == mnLastRelocFrameId+20-1)
                 {
+                    cout << "=================================== mState dd" << mState << endl;
                     NavState nscur;
                     RecomputeIMUBiasAndCurrentNavstate(nscur);
                     // Update NavState of CurrentFrame
@@ -895,15 +910,16 @@ void Tracking::Track()
         else
         {
             mState=LOST;
-
+            cout << "=================================== mState ee" << mState << endl;
             // Clear Frame vectors for reloc bias computation
             if(mv20FramesReloc.size()>0)
                 mv20FramesReloc.clear();
         }
 
+        cout << "=================================== mState 88" << mState << endl;
         // Update drawer
         mpFrameDrawer->Update(this);
-
+        cout << "=================================== mState 99" << mState << endl;
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
@@ -917,7 +933,7 @@ void Tracking::Track()
             }
             else
                 mVelocity = cv::Mat();
-
+            cout << "=================================== mState aa" << mState << endl;
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
             // Clean VO matches
@@ -1000,7 +1016,7 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
-
+    cout << "=================================== mState bb" << mState << endl;
 }
 
 
