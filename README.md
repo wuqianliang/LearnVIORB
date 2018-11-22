@@ -1,3 +1,12 @@
+Done:
+1. Bug fix.
+2. Enable localization mode.
+Todo:
+1. Map merge.
+
+
+
+*****
 Realtime branch. 
 
 Modification: 
