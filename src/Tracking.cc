@@ -825,7 +825,116 @@ void Tracking::Track()
         else
         {
             // Localization Mode: Local Mapping is deactivated
-            cerr<<"Localization mode not supported yet"<<endl;
+
+            if(mState==LOST)
+            {
+                bOK = Relocalization();
+            }
+            else
+            {
+                if(!mbVO)
+                {
+                    // In last frame we tracked enough MapPoints in the map
+#ifdef TRACK_WITH_IMU
+                    // If Visual-Inertial is initialized
+                    if(mpLocalMapper->GetVINSInited())
+                    {
+
+                        // 20 Frames after reloc, track with only vision
+                        if(mbRelocBiasPrepare)
+                        {
+                            bOK = TrackReferenceKeyFrame();
+                        }
+                        else
+                        {
+                            bOK = TrackWithIMU(bMapUpdated);
+                            if(!bOK)
+                                bOK = TrackReferenceKeyFrame();
+                        }
+                    }
+                    else
+#endif
+                    {
+                        if(!mVelocity.empty())
+                        {
+                            bOK = TrackWithMotionModel();
+                        }
+                        else
+                        {
+                            bOK = TrackReferenceKeyFrame();
+                        }
+                    }
+
+
+                }
+                else
+                {
+                    // In last frame we tracked mainly "visual odometry" points.
+
+                    // We compute two camera poses, one from motion model and one doing relocalization.
+                    // If relocalization is sucessfull we choose that solution, otherwise we retain
+                    // the "visual odometry" solution.
+
+                    bool bOKMM = false;
+                    bool bOKReloc = false;
+                    vector<MapPoint*> vpMPsMM;
+                    vector<bool> vbOutMM;
+                    cv::Mat TcwMM;
+                    if(!mVelocity.empty())
+                    {
+#ifdef TRACK_WITH_IMU
+                        if(mpLocalMapper->GetVINSInited())
+                        {
+                            // 20 Frames after reloc, track with only vision
+                            if(mbRelocBiasPrepare)
+                            {
+                                bOKMM = TrackReferenceKeyFrame();
+                            }
+                            else
+                            {
+                                bOKMM = TrackWithIMU(bMapUpdated);
+                                if(!bOKMM)
+                                    bOKMM = TrackReferenceKeyFrame();
+                            }
+                        }
+                        else
+#endif
+                        {
+                            bOKMM = TrackWithMotionModel();
+                        }
+
+                        vpMPsMM = mCurrentFrame.mvpMapPoints;
+                        vbOutMM = mCurrentFrame.mvbOutlier;
+                        TcwMM = mCurrentFrame.mTcw.clone();
+                    }
+                    bOKReloc = Relocalization();
+
+                    if(bOKMM && !bOKReloc)
+                    {
+                        mCurrentFrame.SetPose(TcwMM);
+                        mCurrentFrame.mvpMapPoints = vpMPsMM;
+                        mCurrentFrame.mvbOutlier = vbOutMM;
+
+                        if(mbVO)
+                        {
+                            for(int i =0; i<mCurrentFrame.N; i++)
+                            {
+                                if(mCurrentFrame.mvpMapPoints[i] && !mCurrentFrame.mvbOutlier[i])
+                                {
+                                    mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
+                                }
+                            }
+                        }
+                    }
+                    else if(bOKReloc)
+                    {
+                        mbVO = false;
+                    }
+
+                    bOK = bOKReloc || bOKMM;
+                }
+            }
+
         }
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
@@ -841,7 +950,6 @@ void Tracking::Track()
                 if(!mpLocalMapper->GetVINSInited()) {
 
                     bOK = TrackLocalMap();
-                    cout << "=================================== mState 55" << mState << endl;
                 }
                 else
                 {
@@ -849,12 +957,10 @@ void Tracking::Track()
                     {
                         // 20 Frames after reloc, track with only vision
                         bOK = TrackLocalMap();
-                        cout << "=================================== mState 66" << mState << endl;
                     }
                     else
                     {
                         bOK = TrackLocalMapWithIMU(bMapUpdated);
-                        cout << "=================================== mState 77" << mState << endl;
                     }
                 }
 #endif
@@ -863,13 +969,36 @@ void Tracking::Track()
         else
         {
             // Localization Mode: Local Mapping is deactivated
-            cerr<<"Localization mode not supported yet"<<endl;
+            // mbVO true means that there are few matches to MapPoints in the map. We cannot retrieve
+            // a local map and therefore we do not perform TrackLocalMap(). Once the system relocalizes
+            // the camera we will use the local map again.
+            if(bOK && !mbVO) {
+#ifndef TRACK_WITH_IMU
+                bOK = TrackLocalMap();
+#else
+                if(!mpLocalMapper->GetVINSInited()) {
+
+                    bOK = TrackLocalMap();
+                }
+                else
+                {
+                    if(mbRelocBiasPrepare)
+                    {
+                        // 20 Frames after reloc, track with only vision
+                        bOK = TrackLocalMap();
+                    }
+                    else
+                    {
+                        bOK = TrackLocalMapWithIMU(bMapUpdated);
+                    }
+                }
+#endif
+            }
         }
 
         if(bOK)
         {
             mState = OK;
-            cout << "=================================== mState cc" << mState << endl;
             cout << "mv20FramesReloc.size() " << mv20FramesReloc.size() << endl;
             // Add Frames to re-compute IMU bias after reloc
             if(mbRelocBiasPrepare)
@@ -878,7 +1007,6 @@ void Tracking::Track()
 
                 cout << "mCurrentFrame " << mCurrentFrame.mnId << endl;
 
-                cout << "=================================== mState ccc" << mState << endl;
                 // Before creating new keyframe
                 // Use 20 consecutive frames to re-compute IMU bias
                 if(mCurrentFrame.mnId == mnLastRelocFrameId+20-1)
@@ -910,16 +1038,13 @@ void Tracking::Track()
         else
         {
             mState=LOST;
-            cout << "=================================== mState ee" << mState << endl;
             // Clear Frame vectors for reloc bias computation
             if(mv20FramesReloc.size()>0)
                 mv20FramesReloc.clear();
         }
 
-        cout << "=================================== mState 88" << mState << endl;
         // Update drawer
         mpFrameDrawer->Update(this);
-        cout << "=================================== mState 99" << mState << endl;
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
@@ -933,7 +1058,6 @@ void Tracking::Track()
             }
             else
                 mVelocity = cv::Mat();
-            cout << "=================================== mState aa" << mState << endl;
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
             // Clean VO matches
