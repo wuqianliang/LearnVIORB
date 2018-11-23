@@ -104,7 +104,7 @@ void Optimizer::LocalBAPRVIDP(KeyFrame *pCurKF, const std::list<KeyFrame*> &lLoc
             cerr<<"pKFPrevLocal is Bad?"<<endl;
     }
     // Test log
-    else {cerr<<"pKFPrevLocal is NULL?"<<endl;}
+    else {cerr<<"pKFPrevLocal is NULL?"<<endl;return;}
     // Covisible KeyFrames
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
@@ -966,7 +966,7 @@ void Optimizer::LocalBundleAdjustmentNavStatePRV(KeyFrame *pCurKF, const std::li
             cerr<<"pKFPrevLocal is Bad?"<<endl;
     }
     // Test log
-    else {cerr<<"pKFPrevLocal is NULL?"<<endl;}
+    else {cerr<<"pKFPrevLocal is NULL?"<<endl; return;}
     // Covisible KeyFrames
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
@@ -2371,7 +2371,7 @@ void Optimizer::LocalBundleAdjustmentNavState(KeyFrame *pCurKF, const std::list<
             cerr<<"pKFPrevLocal is Bad?"<<endl;
     }
     // Test log
-    else {cerr<<"pKFPrevLocal is NULL?"<<endl;}
+    else {cerr<<"pKFPrevLocal is NULL?"<<endl; return;}
     // Covisible KeyFrames
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
