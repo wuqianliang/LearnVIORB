@@ -1,7 +1,7 @@
 Done:
 1. Bug fix.
 2. Enable localization mode.
-*
+
 Todo:
 1. Map merge or update.
 2. Map save and load.
