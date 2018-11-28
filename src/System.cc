@@ -236,11 +236,21 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
 
-    if(ConfigParam::GetRealTimeFlag())
+    // Choose to use pure localization mode
+    char IsPureLocalization = 'x';
+    /*cout << "Do you want to run pure localization?(y/n)" << endl;
+    cin >> IsPureLocalization;
+    if(IsPureLocalization == 'Y' || IsPureLocalization == 'y'){
+        ActivateLocalizationMode();
+    }*/
+
+    if(ConfigParam::GetRealTimeFlag() && !(IsPureLocalization == 'Y' || IsPureLocalization == 'y'))
     {
         //Thread for VINS initialization
         mptLocalMappingVIOInit = new thread(&ORB_SLAM2::LocalMapping::VINSInitThread,mpLocalMapper);
     }
+
+    mptNavPathRecorder = new thread(&Tracking::SaveNavPathPointFromCurrentFrame, mpTracker);
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -401,15 +411,16 @@ void System::Shutdown()
     mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
     mpViewer->RequestFinish();
+    mpTracker->RequestFinish();
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished()  ||
-          !mpViewer->isFinished()      || mpLoopCloser->isRunningGBA())
+          !mpViewer->isFinished()      || mpLoopCloser->isRunningGBA() || !mpTracker->isFinished() )
     {
         usleep(5000);
     }
 
-    pangolin::BindToContext("ORB-SLAM2: Map Viewer");
+    pangolin::BindToContext("SLAM Map Viewer");
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
