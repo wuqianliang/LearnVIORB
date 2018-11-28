@@ -712,7 +712,12 @@ void Tracking::SaveNavPathPointFromCurrentFrame() {
                 cout << "index: " << index << " pos:" << mNavPathPts[index][0] << " " << mNavPathPts[index][1] << " " << mNavPathPts[index][2] << endl;
             }
         }
-
+        
+        if(IsSavePathPoint == 'd')
+        {
+            mNavPathPts.clear();
+        }
+        
         if(CheckFinish())
             break;
     }
