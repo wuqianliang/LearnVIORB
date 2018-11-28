@@ -689,6 +689,58 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     return mCurrentFrame.mTcw.clone();
 }
 
+void Tracking::SaveNavPathPointFromCurrentFrame() {
+
+    char IsSavePathPoint;
+    int  pointIndex;
+    while(1)
+    {
+
+        cin >> IsSavePathPoint;
+        if(IsSavePathPoint == 'N' || IsSavePathPoint == 'n'){
+            //cout  << "SaveNavPathPointFromCurrentFrame" << endl;
+            Eigen::Vector3d P = mCurrentFrame.GetNavState().Get_P();
+            cout << "Current position: "<< P(0) << " " << P(1) << " " << P(2) << " " << endl;
+            mNavPathPts.push_back(Eigen::Vector3d(P(0),P(1),P(2)));
+        }
+
+
+        if(IsSavePathPoint == 's')
+        {
+            for(int index = 0; index < mNavPathPts.size();index++)
+            {
+                cout << "index: " << index << " pos:" << mNavPathPts[index][0] << " " << mNavPathPts[index][1] << " " << mNavPathPts[index][2] << endl;
+            }
+        }
+
+        if(CheckFinish())
+            break;
+    }
+}
+
+void Tracking::RequestFinish()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    mbFinishRequested = true;
+}
+
+bool Tracking::CheckFinish()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    return mbFinishRequested;
+}
+
+void Tracking::SetFinish()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    mbFinished = true;
+}
+
+bool Tracking::isFinished()
+{
+    unique_lock<mutex> lock(mMutexFinish);
+    return mbFinished;
+}
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
@@ -767,7 +819,6 @@ void Tracking::Track()
 
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)a
-        cout << "=============================== mbOnlyTracking:" << mbOnlyTracking << endl;
         if(!mbOnlyTracking)
         {
             // Local Mapping is activated. This is the normal behaviour, unless
@@ -778,7 +829,6 @@ void Tracking::Track()
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 #ifdef TRACK_WITH_IMU
-                cout << "=================================== mState:" << mState << endl;
                 // If Visual-Inertial is initialized
                 if(mpLocalMapper->GetVINSInited())
                 {
@@ -787,14 +837,12 @@ void Tracking::Track()
                     if(mbRelocBiasPrepare)
                     {
                         bOK = TrackReferenceKeyFrame();
-                        cout << "=================================== mState 11" << mState << endl;
                     }
                     else
                     {
                         bOK = TrackWithIMU(bMapUpdated);
                         if(!bOK)
                             bOK = TrackReferenceKeyFrame();
-                        cout << "=================================== mState 22" << mState << endl;
 
                     }
                 }
@@ -805,14 +853,12 @@ void Tracking::Track()
                     if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                     {
                         bOK = TrackReferenceKeyFrame();
-                        cout << "=================================== mState 33" << mState << endl;
                     }
                     else
                     {
                         bOK = TrackWithMotionModel();
                         if(!bOK)
                             bOK = TrackReferenceKeyFrame();
-                        cout << "=================================== mState 44" << mState << endl;
                     }
                 }
             }
@@ -820,6 +866,7 @@ void Tracking::Track()
             {
                 bOK = Relocalization();
                 if(bOK) cout<<"Relocalized. id: "<<mCurrentFrame.mnId<<endl;
+                else cout<<"Relocalized. failed!!" << endl;
             }
         }
         else
@@ -938,7 +985,7 @@ void Tracking::Track()
         }
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
-
+        //假如通过一种模型完成了初始相机的位姿估计，则进一步跟踪局部地图，即和当前帧相关联的地图点做联合优化，获得一个较为准确的相机位姿
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
         {
@@ -999,7 +1046,7 @@ void Tracking::Track()
         if(bOK)
         {
             mState = OK;
-            cout << "mv20FramesReloc.size() " << mv20FramesReloc.size() << endl;
+            //cout << "mv20FramesReloc.size() " << mv20FramesReloc.size() << endl;
             // Add Frames to re-compute IMU bias after reloc
             if(mbRelocBiasPrepare)
             {
@@ -1011,7 +1058,6 @@ void Tracking::Track()
                 // Use 20 consecutive frames to re-compute IMU bias
                 if(mCurrentFrame.mnId == mnLastRelocFrameId+20-1)
                 {
-                    cout << "=================================== mState dd" << mState << endl;
                     NavState nscur;
                     RecomputeIMUBiasAndCurrentNavstate(nscur);
                     // Update NavState of CurrentFrame
@@ -1058,6 +1104,7 @@ void Tracking::Track()
             }
             else
                 mVelocity = cv::Mat();
+
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
             // Clean VO matches
@@ -1140,7 +1187,6 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
-    cout << "=================================== mState bb" << mState << endl;
 }
 
 
