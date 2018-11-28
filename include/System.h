@@ -53,6 +53,7 @@ class System
 public:
     bool bLocalMapAcceptKF(void);
     void SaveKeyFrameTrajectoryNavState(const string& filename);
+    
 
 public:
     // Input sensor
@@ -158,6 +159,8 @@ private:
     std::thread* mptViewer;
 
     std::thread* mptLocalMappingVIOInit;
+    std::thread* mptNavPathRecorder;
+
 
     // Reset flag
     std::mutex mMutexReset;
