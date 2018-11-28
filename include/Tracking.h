@@ -102,7 +102,7 @@ public:
 
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
-
+    void SaveNavPathPointFromCurrentFrame();
 
 public:
 
@@ -138,11 +138,17 @@ public:
     list<KeyFrame*> mlpReferences;
     list<double> mlFrameTimes;
     list<bool> mlbLost;
+    vector<Eigen::Vector3d,Eigen::aligned_allocator<Eigen::Vector3d>> mNavPathPts;
 
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
 
     void Reset();
+
+    bool CheckFinish();
+    void SetFinish();
+    void RequestFinish();
+    bool isFinished();
 
 protected:
 
@@ -243,6 +249,13 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+
+    bool mbFinishRequested;
+    bool mbFinished;
+    std::mutex mMutexFinish;
+
+
 };
 
 } //namespace ORB_SLAM
