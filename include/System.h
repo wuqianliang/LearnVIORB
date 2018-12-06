@@ -35,8 +35,10 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
-
+#include <nav_msgs/Odometry.h>
 #include "IMU/imudata.h"
+#include <ros/ros.h>
+#include <std_msgs/Header.h>
 
 namespace ORB_SLAM2
 {
@@ -66,7 +68,8 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,const bool bUseViewer = true);
+
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -83,7 +86,7 @@ public:
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
     cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp);
-    cv::Mat TrackMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu, const double &timestamp);
+    cv::Mat TrackMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu, const double &timestamp, const std_msgs::Header &header, ros::Publisher& pub_camera_pose);
 
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
@@ -160,7 +163,6 @@ private:
 
     std::thread* mptLocalMappingVIOInit;
     std::thread* mptNavPathRecorder;
-
 
     // Reset flag
     std::mutex mMutexReset;
