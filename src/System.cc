@@ -98,7 +98,8 @@ void System::SaveKeyFrameTrajectoryNavState(const string &filename)
     cout << endl << "NavState trajectory saved!" << endl;
 }
 
-cv::Mat System::TrackMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu, const double &timestamp)
+cv::Mat System::TrackMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu, const double &timestamp, const std_msgs::Header &header,
+        ros::Publisher& pub_camera_pose)
 {
     if(mSensor!=MONOCULAR)
     {
@@ -139,8 +140,31 @@ cv::Mat System::TrackMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu,
         mbReset = false;
     }
     }
+    cv::Mat a = mpTracker->GrabImageMonoVI(im,vimu,timestamp);
 
-    return mpTracker->GrabImageMonoVI(im,vimu,timestamp);
+    // 发布摄像头坐标
+    Eigen::Vector3d P = mpTracker->mCurrentFrame.GetNavState().Get_P();
+    Eigen::Quaterniond q = mpTracker->mCurrentFrame.GetNavState().Get_R().unit_quaternion();
+
+    std_msgs::Header _header = header;
+    _header.frame_id = "world";
+
+    nav_msgs::Odometry odometry;
+    odometry.header = _header;
+    odometry.header.frame_id = "world";
+    odometry.pose.pose.position.x = P(0);
+    odometry.pose.pose.position.y = P(1);
+    odometry.pose.pose.position.z = P(2);
+
+    odometry.pose.pose.orientation.x = q.x();
+    odometry.pose.pose.orientation.y = q.y();
+    odometry.pose.pose.orientation.z = q.z();
+    odometry.pose.pose.orientation.w = q.w();
+
+    pub_camera_pose.publish(odometry);
+
+    return a;
+
 }
 
 //-------------------------------------------------------------------------------------------
@@ -148,7 +172,7 @@ cv::Mat System::TrackMonoVI(const cv::Mat &im, const std::vector<IMUData> &vimu,
 //-------------------------------------------------------------------------------------------
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor),mbReset(false),mbActivateLocalizationMode(false),
+               const bool bUseViewer ):mSensor(sensor),mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
 {
     // Output welcome message
@@ -251,6 +275,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
 
     mptNavPathRecorder = new thread(&Tracking::SaveNavPathPointFromCurrentFrame, mpTracker);
+
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
