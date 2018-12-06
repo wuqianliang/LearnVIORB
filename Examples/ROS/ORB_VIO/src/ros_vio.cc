@@ -38,20 +38,6 @@
 
 using namespace std;
 
-class ImageGrabber
-{
-public:
-	ImageGrabber( ORB_SLAM2::System* pSLAM ) : mpSLAM( pSLAM )
-	{
-	}
-
-
-	void GrabImage( const sensor_msgs::ImageConstPtr & msg );
-
-
-	ORB_SLAM2::System* mpSLAM;
-};
-
 int main( int argc, char **argv )
 {
 	ros::init( argc, argv, "Mono" );
@@ -63,6 +49,10 @@ int main( int argc, char **argv )
 		ros::shutdown();
 		return(1);
 	}
+	ros::NodeHandle		nh;
+	ros::Subscriber		imagesub;
+	ros::Subscriber		imusub;
+	ros::Publisher pub_camera_pose = nh.advertise<nav_msgs::Odometry>("camera_pose", 1000);
 
 	/* Create SLAM system. It initializes all system threads and gets ready to process frames. */
 	ORB_SLAM2::System SLAM( argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true );
@@ -70,14 +60,15 @@ int main( int argc, char **argv )
 	ORB_SLAM2::ConfigParam config( argv[2] );
 
 
+
+
+
 	/**
 	 * @brief added data sync
 	 */
-	double			imageMsgDelaySec = config.GetImageDelayToIMU() * -1;
+	double	imageMsgDelaySec = config.GetImageDelayToIMU() * -1;
 	ORBVIO::MsgSynchronizer msgsync( imageMsgDelaySec );
-	ros::NodeHandle		nh;
-	ros::Subscriber		imagesub;
-	ros::Subscriber		imusub;
+
 	if ( ORB_SLAM2::ConfigParam::GetRealTimeFlag() )
 	{
 		imagesub	= nh.subscribe( config._imageTopic, /*200*/ 2, &ORBVIO::MsgSynchronizer::imageCallback, &msgsync );
@@ -154,7 +145,7 @@ int main( int argc, char **argv )
 					if ( imageMsg->header.stamp.toSec() < startT + config._testDiscardTime )
 						im = cv::Mat::zeros( im.rows, im.cols, im.type() );
 				}
-				SLAM.TrackMonoVI( im, vimuData, imageMsg->header.stamp.toSec() - imageMsgDelaySec );
+				SLAM.TrackMonoVI( im, vimuData, imageMsg->header.stamp.toSec() - imageMsgDelaySec, imageMsg->header, pub_camera_pose);
 
 
 				
